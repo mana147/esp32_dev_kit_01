@@ -17,9 +17,9 @@ Ngày biên soạn: **06/10/2026**. Phạm vi: **ESP32 cổ điển, module ESP-
 
 ## 1. Cơ sở tài liệu và cách đọc ảnh
 
-![ESP32 DOIT DevKit V1 pinout](img/ESP32-DOIT-DEV-KIT-v1-pinout-mischianti.png)
+![ESP32 DOIT DevKit V1 pinout](../img/ESP32-DOIT-DEV-KIT-v1-pinout-mischianti.png)
 
-Ảnh gốc nằm trong [thư mục img](img/ESP32-DOIT-DEV-KIT-v1-pinout-mischianti.png), mang tên tác giả/trang Mischianti. Giữ nguyên ảnh và thông tin giấy phép hiển thị trên ảnh.
+Ảnh gốc nằm trong [thư mục img](../img/ESP32-DOIT-DEV-KIT-v1-pinout-mischianti.png), mang tên tác giả/trang Mischianti. Giữ nguyên ảnh và thông tin giấy phép hiển thị trên ảnh.
 
 **Hướng nhìn:** nhìn từ mặt linh kiện; anten ở trên, cổng micro-USB ở dưới. Hàng trái bắt đầu bằng EN, hàng phải bắt đầu bằng GPIO23. Nhìn từ mặt hàn sẽ đảo trái/phải.
 
@@ -40,7 +40,7 @@ Một chân có nhiều nhãn vì có nhiều chức năng lựa chọn. Không 
 
 **Đính chính ảnh:** GPIO26 được ghi `ADC2_7`; đúng là **ADC2_CH9**. GPIO27 mới là ADC2_CH7. Bảng dưới đã sửa lỗi này. Nhãn `HSPI_ID` ở GPIO13 nên đọc theo tín hiệu **HSPID / MOSI**. [Datasheet ESP32](https://documentation.espressif.com/esp32_datasheet_en.html)
 
-Thông tin cục bộ: [AGENT.md](AGENT.md) ghi nhận một lần đọc phần cứng trước đây: ESP32-D0WDQ6, flash 4 MB, không PSRAM, USB–UART CP2102. Đây là ghi nhận có sẵn, **chưa đo lại board đang cắm**. [platformio.ini](platformio.ini) hiện chọn `esp32dev`, Arduino, CPU 240 MHz, flash 4 MB. Tên board trong cấu hình không tự xác nhận model phần cứng.
+Thông tin cục bộ: [AGENT.md](../AGENT.md) ghi nhận một lần đọc phần cứng trước đây: ESP32-D0WDQ6, flash 4 MB, không PSRAM, USB–UART CP2102. Đây là ghi nhận có sẵn, **chưa đo lại board đang cắm**. [platformio.ini](../platformio.ini) hiện chọn `esp32dev`, Arduino, CPU 240 MHz, flash 4 MB. Tên board trong cấu hình không tự xác nhận model phần cứng.
 
 ## 2. Các linh kiện và khối chức năng trên board
 
@@ -350,8 +350,8 @@ Các liên kết được đối chiếu khi biên soạn; tài liệu `latest/s
 
 | Nguồn | Nội dung dùng để tra |
 | --- | --- |
-| [Ảnh pinout cục bộ](img/ESP32-DOIT-DEV-KIT-v1-pinout-mischianti.png) | Vị trí 30 chân, nhãn trên board |
-| [AGENT.md](AGENT.md), [platformio.ini](platformio.ini) | Ghi nhận phần cứng trước đây và cấu hình dự án |
+| [Ảnh pinout cục bộ](../img/ESP32-DOIT-DEV-KIT-v1-pinout-mischianti.png) | Vị trí 30 chân, nhãn trên board |
+| [AGENT.md](../AGENT.md), [platformio.ini](../platformio.ini) | Ghi nhận phần cứng trước đây và cấu hình dự án |
 | [ESP32 Datasheet](https://documentation.espressif.com/esp32_datasheet_en.html) | Mapping chân, ADC, strapping |
 | [ESP32-WROOM-32 Datasheet](https://documentation.espressif.com/esp32-wroom-32_datasheet_en.html) | Module, RF, nguồn điện |
 | [GPIO & RTC GPIO](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/gpio.html) | Input-only, pull-up, JTAG, errata, ADC2/WiFi |

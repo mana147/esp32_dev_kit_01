@@ -1,34 +1,68 @@
+#include "config.h"
 #include <Arduino.h>
-#include <WiFi.h>
-#include "wifi_helpers.h"
+#include <Button.h>
+#include <SerialView.h>
+#include <WifiScanner.h>
 
-void setup() {
-  Serial.begin(115200);
-  delay(1000);
+namespace
+{
+WifiScanner scanner;
+Button button(cfg::kButtonPin, cfg::kDebounceMs);
+uint32_t lastScanMs = 0;
+} // namespace
 
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect(true);
-  delay(100);
+void setup()
+{
+  Serial.begin(cfg::kSerialBaud); // note : 115200
+  delay(cfg::kSerialBootDelayMs); // Wait for the serial port to initialize.
+
+  // Initialize the button.
+  button.begin();
+
+  // Initialize the WiFi scanner if enabled.
+  if (cfg::kEnableWifiScan)
+    scanner.begin();
+
+  // Scan immediately on boot.
+  lastScanMs = millis() - cfg::kScanIntervalMs;
 }
 
-void loop() {
-  Serial.println();
-  Serial.println("Scanning WiFi networks...\n");
+void loop()
+{
+  // Cập nhật trạng thái nút trước khi đọc sự kiện nhấn.
+  button.update();
 
-  int networkCount = WiFi.scanNetworks(false, false);
-
-  if (networkCount == 0) {
-    Serial.println("No WiFi networks found.");
-  } else {
-    printNetworkTableHeader();
-
-    for (int i = 0; i < networkCount; ++i) {
-      printNetworkDetails(i);
-    }
-
-    Serial.println("---------------------------------------------------------------------------------------------------------------------------------");
+  // đọc trạng thái nút và lưu sự kiện nhấn một lần.
+  const bool buttonPressed = button.pressed();
+  if (buttonPressed)
+  {
+    serial_view::printButtonPressed(cfg::kButtonPin);
   }
 
-  WiFi.scanDelete();
-  delay(5000);
+  // Check if it's time to start a new scan.
+  if (!cfg::kEnableWifiScan)
+    return;
+
+  // Determine if the scan interval has elapsed.
+  const bool intervalElapsed = (millis() - lastScanMs >= cfg::kScanIntervalMs);
+  if (buttonPressed || intervalElapsed)
+  {
+    lastScanMs = millis();
+    serial_view::printScanStart();
+    scanner.start();
+  }
+
+  // Poll the scanner for its current state.
+  switch (scanner.poll())
+  {
+  case ScanState::Done:
+    serial_view::printNetworks(scanner);
+    scanner.release();
+    break;
+  case ScanState::Failed:
+    serial_view::printScanFailed();
+    break;
+  default:
+    break;
+  }
 }
