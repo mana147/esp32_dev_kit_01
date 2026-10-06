@@ -20,7 +20,8 @@ project/
 │   ├── OuiDb/src/OuiDb.{h,cpp}
 │   ├── WifiScanner/src/WifiScanner.{h,cpp}
 │   ├── SerialView/src/SerialView.{h,cpp}
-│   └── Button/src/Button.{h,cpp}
+│   ├── Button/src/Button.{h,cpp}
+│   └── Led/src/Led.{h,cpp}              # Điều khiển LED active HIGH
 ├── test/
 │   ├── test_wifi_utils/test_main.cpp     # native: chạy trên máy tính
 │   └── test_hw_blink/test_main.cpp       # on-device: cần board
@@ -81,6 +82,8 @@ class WifiScanner {
 ## 5. `main.cpp` mỏng
 
 `main.cpp` chỉ khởi tạo module và gọi chúng trong `loop()`; không chứa logic quét, định dạng hay tra cứu.
+
+LED onboard được bọc trong `Led`: `main.cpp` tạo `Led led(cfg::kLedPin)`, gọi `led.begin()` trong `setup()` và `led.toggle()` khi nút phát sự kiện nhấn. Trạng thái LED và thao tác GPIO nằm trong `lib/Led/src/`; module cũng cung cấp `set(bool)` và `isOn()`.
 
 ## 6. `platformio.ini` chuẩn
 

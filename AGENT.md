@@ -23,9 +23,10 @@ Mã nguồn và cấu hình hiện tại xác định hành vi triển khai. `do
 ## 3. Mục tiêu và trạng thái hiện tại
 
 - Firmware C++ dùng Arduino trên ESP32 cổ điển, mục tiêu quét mạng WiFi và xuất bảng kết quả qua Serial. Chưa có web server, kết nối vào access point, MQTT hoặc OLED trong firmware.
-- **`cfg::kEnableWifiScan = false` trong `include/config.h`: quét WiFi hiện bị tắt.** `setup()` vẫn mở Serial và khởi tạo nút; `loop()` đọc nút, in sự kiện nhấn qua Serial rồi return. Không có log scan hoặc kết quả WiFi trong cấu hình này. Không tự đổi cờ khi làm công việc khác.
+- **`cfg::kEnableWifiScan = false` trong `include/config.h`: quét WiFi hiện bị tắt.** `setup()` vẫn khởi tạo LED, mở Serial và khởi tạo nút; `loop()` đọc nút, đảo trạng thái LED và in sự kiện nhấn qua Serial rồi return. Không có log scan hoặc kết quả WiFi trong cấu hình này. Không tự đổi cờ khi làm công việc khác.
 - Khi cờ được bật: quét ngay ở lần chạy `loop()` đầu, quét lại theo chu kỳ 5000 ms hoặc khi nút phát sự kiện nhấn; quét chạy bất đồng bộ.
 - Nút hiện dùng **GPIO15, active HIGH, `INPUT_PULLDOWN`**, nối nút giữa GPIO15 và 3V3, debounce 30 ms. Mỗi lần nhấn in một dòng `[Button] GPIO15 pressed (HIGH)` qua Serial 115200 baud; giữ nút không in lặp. Đây là nút ngoài, khác nút BOOT tại GPIO0.
+- LED onboard dùng **`cfg::kLedPin = 2`, active HIGH**: tắt khi khởi tạo, mỗi sự kiện nhấn nút đảo trạng thái LED một lần; giữ nút không đảo lặp. Hành vi này vẫn chạy khi quét WiFi bị tắt. Chân/cực tính LED trên board thực tế chưa kiểm chứng trong lần sửa này.
 - Bảng Serial gồm SSID, BSSID, channel, band, security, RSSI, Signal% và vendor. RSSI là dBm; Signal% là phép quy đổi tuyến tính, không phải phép đo chất lượng liên kết thực tế.
 - OLED chỉ có tài liệu và ảnh tham khảo. Không có module Display hoặc dependency U8g2 trong `platformio.ini`.
 
@@ -35,9 +36,10 @@ Các giá trị trên là trạng thái tại lúc viết hướng dẫn; agent 
 
 | Đường dẫn | Trách nhiệm | Khi cần sửa |
 | --- | --- | --- |
-| `src/main.cpp` | `setup()`/`loop()`, ghép scanner, nút và Serial view | Điều phối, lịch quét, bật/tắt luồng ứng dụng |
+| `src/main.cpp` | `setup()`/`loop()`, ghép scanner, nút, LED onboard và Serial view | Điều phối, lịch quét, bật/tắt luồng ứng dụng |
 | `include/config.h` | `namespace cfg`: baud, boot delay, GPIO, debounce, cờ bật scan, interval | Cấu hình ứng dụng và pin |
 | `lib/Button/src/Button.{h,cpp}` | Đọc nút, debounce và sự kiện nhấn một lần | Input phần cứng |
+| `lib/Led/src/Led.{h,cpp}` | Khởi tạo LED active HIGH, lưu trạng thái, bật/tắt và đảo trạng thái | Output phần cứng |
 | `lib/WifiScanner/src/WifiScanner.{h,cpp}` | Bọc WiFi Arduino, scan async, trạng thái và dữ liệu `NetworkInfo` | Logic quét, vòng đời kết quả, tên security |
 | `lib/SerialView/src/SerialView.{h,cpp}` | In trạng thái/bảng ra Serial | Định dạng đầu ra |
 | `lib/WifiUtils/src/WifiUtils.{h,cpp}` | Hàm thuần: band theo channel, phần trăm theo RSSI | Logic tính toán chạy được trên máy tính |
@@ -46,16 +48,16 @@ Các giá trị trên là trạng thái tại lúc viết hướng dẫn; agent 
 | `test/test_hw_blink/test_main.cpp` | Firmware test LED GPIO2 | Kiểm tra GPIO trên board |
 | `docs/`, `img/` | Kiến trúc, phần cứng, ảnh tham khảo | Tài liệu và mapping đề xuất |
 
-Giữ `main.cpp` làm tầng điều phối. `SerialView` phụ thuộc `WifiScanner`, `WifiUtils`, `OuiDb`; `WifiScanner` và `Button` phụ thuộc Arduino/phần cứng. `WifiUtils` và `OuiDb` phải giữ độc lập với Arduino, `WiFi`, `Serial`, GPIO để chạy test native. Tầng dưới không include tầng điều phối hoặc view.
+Giữ `main.cpp` làm tầng điều phối. `SerialView` phụ thuộc `WifiScanner`, `WifiUtils`, `OuiDb`; `WifiScanner`, `Button` và `Led` phụ thuộc Arduino/phần cứng. `WifiUtils` và `OuiDb` phải giữ độc lập với Arduino, `WiFi`, `Serial`, GPIO để chạy test native. Tầng dưới không include tầng điều phối hoặc view.
 
 ## 5. Luồng chạy và các ràng buộc cần giữ
 
 ### Quét WiFi
 
-1. `setup()` mở Serial 115200 baud, chờ 1000 ms, gọi `button.begin()`; chỉ gọi `scanner.begin()` khi cờ scan bật.
+1. `setup()` gọi `led.begin()` để tắt LED GPIO2 và cấu hình OUTPUT, mở Serial 115200 baud, chờ 1000 ms, gọi `button.begin()`; chỉ gọi `scanner.begin()` khi cờ scan bật.
 2. `scanner.begin()` cấu hình `WIFI_STA`, gọi `WiFi.disconnect(true)` và chờ 100 ms. Không có lệnh kết nối SSID/password.
 3. `lastScanMs = millis() - cfg::kScanIntervalMs` cho phép quét ngay khi bắt đầu `loop()`.
-4. Mỗi vòng lặp cập nhật nút và đọc `pressed()` một lần vào `buttonPressed`; in sự kiện nhấn kể cả khi scan bị tắt. Khi scan được bật và tới lịch hoặc có sự kiện nhấn đã lưu, ứng dụng cập nhật mốc thời gian, in trạng thái và gọi `scanner.start()`.
+4. Mỗi vòng lặp cập nhật nút và đọc `pressed()` một lần vào `buttonPressed`; đảo trạng thái LED và in sự kiện nhấn kể cả khi scan bị tắt. Khi scan được bật và tới lịch hoặc có sự kiện nhấn đã lưu, ứng dụng cập nhật mốc thời gian, in trạng thái và gọi `scanner.start()`.
 5. `start()` bỏ qua yêu cầu nếu `_running` đang true; nếu không, giải phóng kết quả cũ và gọi `WiFi.scanNetworks(true, false)` (async, không yêu cầu hiển thị mạng ẩn).
 6. `poll()` trả `Idle`, `Running`, `Done` hoặc `Failed`. Khi `Done`, ứng dụng in kết quả rồi gọi `release()`; khi `Failed`, in lỗi. Số mạng bằng 0 là quét thành công không tìm thấy mạng, khác lỗi âm.
 
@@ -68,9 +70,10 @@ Ràng buộc khi sửa:
 - Khi scan đang chạy, `main.cpp` vẫn có thể in “Scanning WiFi networks...” và cập nhật lịch dù `start()` bỏ qua yêu cầu. Đừng mô tả nút là có hàng đợi hoặc có khả năng restart scan.
 - `start()` hiện chưa kiểm tra giá trị trả về tức thời của `scanNetworks()`; trạng thái lỗi được xử lý qua `poll()`. Nếu sửa xử lý lỗi, đối chiếu API của framework thực tế và cả giá trị biểu thị scan đang chạy.
 
-### Nút và các hàm thuần
+### Nút, LED và các hàm thuần
 
 - `Button::update()` cần được gọi thường xuyên; tránh thêm tác vụ chặn dài vào `loop()`. `pressed()` đọc rồi xóa sự kiện; `isDown()` trả trạng thái ổn định.
+- `Led::begin()` khởi tạo về trạng thái tắt; `set(bool)` bật/tắt, `toggle()` đảo trạng thái, `isOn()` trả trạng thái đã lưu trong module. `main.cpp` gọi `led.toggle()` khi có sự kiện nhấn, không quản lý trạng thái LED hoặc ghi GPIO trực tiếp.
 - Log nút chạy trước nhánh return khi scan bị tắt. Dùng lại `buttonPressed` khi quyết định quét; không gọi `pressed()` lần thứ hai vì lần đầu đã xóa sự kiện.
 - `bandFromChannel()` trả `2.4GHz` cho 1–14, `5GHz` cho 36–165, còn lại `Unknown`. Đây là helper phân loại; không suy ra ESP32 của dự án có thể scan 5 GHz.
 - `signalPercentFromRssi()` ánh xạ [-90, -30] dBm sang [0, 100], chặn ngoài khoảng và tính bằng số nguyên.

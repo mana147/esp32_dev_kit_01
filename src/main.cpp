@@ -1,13 +1,15 @@
 #include "config.h"
 #include <Arduino.h>
 #include <Button.h>
+#include <Led.h>
 #include <SerialView.h>
 #include <WifiScanner.h>
 
 namespace
 {
-WifiScanner scanner;
+WifiScanner wifi_scanner; 
 Button button(cfg::kButtonPin, cfg::kDebounceMs);
+Led led(cfg::kLedPin);
 uint32_t lastScanMs = 0;
 } // namespace
 
@@ -19,9 +21,14 @@ void setup()
   // Initialize the button.
   button.begin();
 
+  // Initialize the LED.
+  led.begin();
+
   // Initialize the WiFi scanner if enabled.
   if (cfg::kEnableWifiScan)
-    scanner.begin();
+  {
+    wifi_scanner.begin();
+  }
 
   // Scan immediately on boot.
   lastScanMs = millis() - cfg::kScanIntervalMs;
@@ -36,6 +43,8 @@ void loop()
   const bool buttonPressed = button.pressed();
   if (buttonPressed)
   {
+    // Mỗi sự kiện nhấn đã debounce chỉ đảo LED một lần.
+    led.toggle();
     serial_view::printButtonPressed(cfg::kButtonPin);
   }
 
@@ -49,15 +58,15 @@ void loop()
   {
     lastScanMs = millis();
     serial_view::printScanStart();
-    scanner.start();
+    wifi_scanner.start();
   }
 
   // Poll the scanner for its current state.
-  switch (scanner.poll())
+  switch (wifi_scanner.poll())
   {
   case ScanState::Done:
-    serial_view::printNetworks(scanner);
-    scanner.release();
+    serial_view::printNetworks(wifi_scanner);
+    wifi_scanner.release();
     break;
   case ScanState::Failed:
     serial_view::printScanFailed();

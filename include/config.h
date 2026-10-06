@@ -8,8 +8,8 @@ namespace cfg
 constexpr uint32_t kSerialBaud = 115200;
 constexpr uint32_t kSerialBootDelayMs = 1000;
 
-// LED pin configuration (if applicable).
-constexpr uint8_t kLedPin = 2; // led on board
+// LED onboard tại GPIO2, active HIGH.
+constexpr uint8_t kLedPin = 2;
 
 // Button wiring: one side to 3.3V, other side to GPIO15 (internal pull-down).
 constexpr uint8_t kButtonPin = 15;
